@@ -1,48 +1,35 @@
-#ifndef PROB_A_HASHMAP_H
-#define PROB_A_HASHMAP_H
+#pragma once
 
+#include <exception>
 #include <functional>
+#include <iterator>
 #include <list>
 #include <vector>
-#include <exception>
 
 template <class KeyType, class ValueType, class Hash = std::hash<KeyType>>
 class HashMap {
-    typedef std::list<std::pair<const KeyType, ValueType>> Cell;
-    Cell* list_iter = new Cell();
-    const typename Cell::iterator end_iter = list_iter->begin();
-    const typename Cell::const_iterator end_const_iter = list_iter->begin();
-    std::list<Cell*>* list_iter2 = new std::list<Cell*>();
-    const typename std::list<Cell*>::iterator end_table = list_iter2->begin();
-    const double max_load = 1.0 / 2;
-
-    Hash hasher;
-    size_t len = 0;
-    std::vector<typename std::list<Cell*>::iterator> table;
-    std::list<Cell*> links;
 public:
+    typedef std::list<std::pair<const KeyType, ValueType>> Cell;
+
     HashMap(Hash h = Hash()): hasher(h) {}
     template <class Iter>
     HashMap(const Iter& begin, const Iter& end, Hash h = Hash()): hasher(h) {
-        size_t cnt = 0;
-        for (Iter it = begin; it != end; ++it) {
-            ++cnt;
-        }
+        size_t cnt = std::distance(begin, end);
         table.resize(cnt << 1, end_table);
         for (Iter it = begin; it != end; ++it)
             _insert(*it);
     }
     HashMap(std::initializer_list<std::pair<KeyType, ValueType>> init, Hash h = Hash()): hasher(h) {
         table.resize(init.size() << 1, end_table);
-        for (auto it : init)
+        for (const auto& it : init)
             _insert(it);
     }
     HashMap(const HashMap& mp) {
         table.resize(mp.size() << 1, end_table);
-        for (auto it : mp)
+        for (const auto& it : mp)
             _insert(it);
     }
-    HashMap&operator=(const HashMap& other) {
+    HashMap& operator=(const HashMap& other) {
         if (&other == this) {
             return *this;
         }
@@ -62,7 +49,7 @@ public:
             delete link;
         }
         delete list_iter;
-        delete list_iter2;
+        delete list_iter_end;
         links.clear();
     }
 
@@ -76,7 +63,7 @@ public:
         return hasher;
     }
 
-    class iterator {
+    class iterator : public std::iterator<std::input_iterator_tag, ValueType> {
         std::list<Cell*>* links;
         typename std::list<Cell*>::iterator link;
         typename Cell::iterator elem;
@@ -125,7 +112,7 @@ public:
         return {&links, links.end(), end_iter};
     }
 
-    class const_iterator {
+    class const_iterator : public std::iterator<std::input_iterator_tag, ValueType> {
         const std::list<Cell*>* links;
         typename std::list<Cell*>::const_iterator link;
         typename Cell::const_iterator elem;
@@ -159,11 +146,11 @@ public:
         }
         bool operator!=(const const_iterator& other) {
             return links != other.links || link != other.link ||
-                    (link != links->end() && elem != other.elem);
+                   (link != links->end() && elem != other.elem);
         }
         bool operator==(const const_iterator& other) {
             return links == other.links && link == other.link &&
-                    (link == links->end() || elem == other.elem);
+                   (link == links->end() || elem == other.elem);
         }
     };
     const_iterator begin() const {
@@ -238,6 +225,17 @@ public:
     }
 
 private:
+    Cell* list_iter = new Cell();
+    const typename Cell::iterator end_iter = list_iter->begin();
+    const typename Cell::const_iterator end_const_iter = list_iter->begin();
+    std::list<Cell*>* list_iter_end = new std::list<Cell*>();
+    const typename std::list<Cell*>::iterator end_table = list_iter_end->begin();
+    const double max_load = 1.0 / 2;
+
+    Hash hasher;
+    size_t len = 0;
+    std::vector<typename std::list<Cell*>::iterator> table;
+    std::list<Cell*> links;
     inline void _insert(const std::pair<KeyType, ValueType>& pr) {
         if (table.size() == 0) {
             table.resize(1, end_table);
@@ -271,5 +269,3 @@ private:
         return true;
     }
 };
-
-#endif //PROB_A_HASHMAP_H
